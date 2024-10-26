@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotionAI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Custom Styles for Dark Theme */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .bg-custom {
+            background-color: #1f1f1f;
+        }
+        .btn-custom {
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            padding: 12px 20px;
+            transition: background-color 0.3s;
+        }
+        .btn-custom:hover {
+            background-color: #005fa3;
+        }
+        .circle-loader {
+            border: 8px solid #555;
+            border-top: 8px solid #007acc;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            display: none; /* Initially hidden */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .border-custom {
+            border: 2px solid #444444;
+            border-radius: 10px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body class="bg-custom min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6">
+
+            <!-- Título del contenedor -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white">Análisis de Emociones en Imágenes</h1>
+                <p class="text-gray-400 mt-2">Sube una imagen para identificar emociones.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row">
+                <!-- File Upload Section -->
+                <div class="md:w-1/2 mb-8 pr-4 flex flex-col items-center">
+                    <input type="file" id="fileInput" class="hidden" accept=".jpg,.jpeg,.png" />
+                    <button id="uploadButton" class="btn-custom w-full mb-4">
+                        Seleccionar Imagen
+                    </button>
+
+                    <button id="submitButton" class="btn-custom w-full hidden">
+                        Analizar Fotografía
+                    </button>
+
+                    <!-- Loading Indicator -->
+                    <div id="loading" class="flex items-center justify-center p-4">
+                        <div class="circle-loader"></div>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div id="error" class="hidden mt-4 p-4 bg-red-800 border border-red-600 text-red-200 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="md:w-1/2 mb-8 pl-4">
+                    <div id="results" class="hidden">
+                        <div class="border border-gray-600 rounded-lg p-4">
+                            <img id="resultImage" class="max-w-full h-auto mx-auto rounded-lg" src="" alt="Resultado del Análisis">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showLoading() {
+            $('#loading .circle-loader').show();
+            $('#error').addClass('hidden');
+            $('#results').addClass('hidden');
+        }
+
+        function hideLoading() {
+            $('#loading .circle-loader').hide();
+        }
+
+        $(document).ready(function() {
+            $('#uploadButton').on('click', function() {
+                $('#fileInput').click(); // Trigger file input click
+            });
+
+            $('#fileInput').on('change', function() {
+                if (this.files.length > 0) {
+                    $('#submitButton').removeClass('hidden'); // Show the analyze button
+                }
+            });
+
+            $('#submitButton').on('click', function() {
+                var formData = new FormData();
+                formData.append('file', $('#fileInput')[0].files[0]);
+                showLoading();
+
+                $.ajax({
+                    url: '/analyze',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        hideLoading();
+                        $('#results').removeClass('hidden');
+                        $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                    },
+                    error: function(xhr) {
+                        hideLoading();
+                        $('#error')
+                            .removeClass('hidden')
+                            .text(xhr.responseJSON?.error || 'Ocurrió un error');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

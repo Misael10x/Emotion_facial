@@ -24,6 +24,11 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def adjust_brightness(image, factor=1.5):
+    """Adjust the brightness of the image by a given factor."""
+    image = np.clip(image * factor, 0, 255).astype(np.uint8)
+    return image
+
 def analyze_face(image_path):
     try:
         # Initialize MediaPipe Face Mesh
@@ -43,34 +48,65 @@ def analyze_face(image_path):
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+        # Flip the image horizontally
+        flipped_image = cv2.flip(gray_image, 1)
+
+        # Flip the image vertically
+        vertically_flipped_image = cv2.flip(gray_image, 0)
+
+        # Adjust brightness
+        brightened_image = adjust_brightness(gray_image)
+
         # Detect facial landmarks
         results = face_mesh.process(rgb_image)
 
         if not results.multi_face_landmarks:
             raise Exception("No face detected in the image")
 
-
-        # Select 15 main keypoints
-        # key_points = [33, 133, 362, 263, 1, 61, 291, 199,
-        #             94, 0, 24, 130, 359, 288, 378]
         # Select 12 main keypoints
-        key_points = [33, 133, 362, 263, 1, 61, 291, 199,
-                     94, 0, 24, 130]
+        key_points = [33, 133, 362, 263, 1, 61, 291, 199, 94, 0, 24, 130]
 
         height, width = gray_image.shape
-        
+
         # Create a new figure for each analysis
         plt.clf()
-        fig = plt.figure(figsize=(6, 6))
-        #fig = plt.figure(figsize=(2, 4))
-        plt.imshow(gray_image, cmap='gray')
+        fig, axes = plt.subplots(1, 4, figsize=(24, 6))  # Adjust to include 4 subplots
 
-        # Plot facial landmarks
+        # Plot the original image
+        axes[0].imshow(gray_image, cmap='gray')
+        axes[0].set_title('Imagen Original')
         for point_idx in key_points:
             landmark = results.multi_face_landmarks[0].landmark[point_idx]
             x = int(landmark.x * width)
             y = int(landmark.y * height)
-            plt.plot(x, y, 'rx')
+            axes[0].plot(x, y, 'rx')
+
+        # Plot the flipped image horizontally
+        axes[1].imshow(flipped_image, cmap='gray')
+        axes[1].set_title('Imagen Horizontalmente')
+        for point_idx in key_points:
+            landmark = results.multi_face_landmarks[0].landmark[point_idx]
+            x = width - int(landmark.x * width)  # Flip x-coordinate
+            y = int(landmark.y * height)
+            axes[1].plot(x, y, 'rx')
+
+        # Plot the brightened image
+        axes[2].imshow(brightened_image, cmap='gray')
+        axes[2].set_title('Brillo Aumentado')
+        for point_idx in key_points:
+            landmark = results.multi_face_landmarks[0].landmark[point_idx]
+            x = int(landmark.x * width)
+            y = int(landmark.y * height)
+            axes[2].plot(x, y, 'rx')
+
+        # Plot the flipped image vertically
+        axes[3].imshow(vertically_flipped_image, cmap='gray')
+        axes[3].set_title('Imagen Verticalmente')
+        for point_idx in key_points:
+            landmark = results.multi_face_landmarks[0].landmark[point_idx]
+            x = int(landmark.x * width)  # X-coordinate remains the same
+            y = height - int(landmark.y * height)  # Flip y-coordinate
+            axes[3].plot(x, y, 'rx')
 
         # Save plot to memory
         buf = BytesIO()
